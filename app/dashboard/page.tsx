@@ -1,0 +1,9 @@
+export const instant = false;
+
+export default function DashboardPage() {
+  return (
+    <>
+      <h1>Dashboard</h1>
+    </>
+  );
+}
