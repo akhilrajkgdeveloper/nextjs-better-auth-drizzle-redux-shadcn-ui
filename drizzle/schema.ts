@@ -1,9 +1,9 @@
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, foreignKey } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
-  email: text("email").notNull().unique(),
+  email: text("email").notNull().unique("user_email_key"),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
   role: text("role"),
@@ -22,7 +22,7 @@ export const session = pgTable(
   {
     id: text("id").primaryKey(),
     expiresAt: timestamp("expires_at").notNull(),
-    token: text("token").notNull().unique(),
+    token: text("token").notNull().unique("session_token_key"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .$onUpdate(() => /* @__PURE__ */ new Date())
@@ -30,11 +30,16 @@ export const session = pgTable(
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
     impersonatedBy: text("impersonated_by"),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
   },
-  (table) => [index("session_userId_idx").on(table.userId)],
+  (table) => [
+    index("session_userId_idx").on(table.userId),
+    foreignKey({
+      name: "session_user_id_user_id_fkey",
+      columns: [table.userId],
+      foreignColumns: [user.id],
+    }).onDelete("cascade"),
+  ],
 );
 
 export const account = pgTable(
@@ -43,9 +48,7 @@ export const account = pgTable(
     id: text("id").primaryKey(),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
     idToken: text("id_token"),
@@ -58,7 +61,14 @@ export const account = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("account_userId_idx").on(table.userId)],
+  (table) => [
+    index("account_userId_idx").on(table.userId),
+    foreignKey({
+      name: "account_user_id_user_id_fkey",
+      columns: [table.userId],
+      foreignColumns: [user.id],
+    }).onDelete("cascade"),
+  ],
 );
 
 export const verification = pgTable(
